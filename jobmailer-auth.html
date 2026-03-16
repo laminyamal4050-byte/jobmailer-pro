@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobMailer — تسجيل الدخول</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#00c853;--blue:#2979ff;--dark:#0d1117;--dark2:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--red:#f85149}
+body{background:var(--dark);color:var(--text);font-family:'Cairo',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,200,83,.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,200,83,.03)1px,transparent 1px);background-size:50px 50px}
+.bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(0,200,83,.1),transparent)}
+
+.card{position:relative;z-index:10;background:var(--dark2);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+
+.logo{text-align:center;margin-bottom:28px}
+.logo-text{font-family:'Outfit',sans-serif;font-size:28px;font-weight:900}
+.logo-text span:first-child{color:var(--green)}
+.logo-text span:last-child{color:var(--blue)}
+.logo-sub{font-size:13px;color:var(--muted);margin-top:4px}
+
+.tabs{display:flex;background:var(--dark);border-radius:8px;padding:4px;margin-bottom:24px;gap:4px}
+.tab-btn{flex:1;padding:9px;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;transition:all .2s;background:transparent;color:var(--muted)}
+.tab-btn.active{background:var(--dark2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.field input{width:100%;background:var(--dark);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:8px;font-size:14px;font-family:'Cairo',sans-serif;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--green)}
+
+.btn-submit{width:100%;padding:13px;background:var(--green);color:#000;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;transition:all .2s;margin-top:6px}
+.btn-submit:hover{background:#00e060;transform:translateY(-1px)}
+.btn-submit:disabled{background:#1a3a1a;color:#2a4a2a;cursor:not-allowed;transform:none}
+
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);font-size:13px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none}
+.msg.error{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:var(--red)}
+.msg.success{background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.3);color:var(--green)}
+.msg.info{background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);color:var(--blue)}
+
+.spinner{width:18px;height:18px;border:2px solid rgba(0,0,0,.3);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;margin-left:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.back-link{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
+.back-link a{color:var(--green);text-decoration:none}
+.back-link a:hover{text-decoration:underline}
+
+.pending-notice{background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);border-radius:10px;padding:16px;text-align:center;display:none}
+.pending-notice h3{color:var(--blue);font-size:16px;margin-bottom:8px}
+.pending-notice p{color:var(--muted);font-size:13px;line-height:1.8}
+.pending-notice .wa-link{display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;margin-top:12px;transition:all .2s}
+.pending-notice .wa-link:hover{background:#1fa855}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-text"><span>Job</span><span>Mailer</span></div>
+    <div class="logo-sub">by WB2 — أرسل طلباتك لألمانيا تلقائياً</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('login')">تسجيل الدخول</button>
+    <button class="tab-btn" onclick="showTab('register')">حساب جديد</button>
+  </div>
+
+  <div id="msg" class="msg"></div>
+
+  <!-- LOGIN FORM -->
+  <div id="form-login">
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="login-email" placeholder="example@gmail.com">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <button class="btn-submit" id="login-btn" onclick="login()">دخول ←</button>
+  </div>
+
+  <!-- REGISTER FORM -->
+  <div id="form-register" style="display:none">
+    <div class="field">
+      <label>الاسم الكامل</label>
+      <input type="text" id="reg-name" placeholder="Bilal Lazrague">
+    </div>
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="reg-email" placeholder="example@gmail.com">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="reg-pass" placeholder="8 أحرف على الأقل" onkeydown="if(event.key==='Enter')register()">
+    </div>
+    <button class="btn-submit" id="reg-btn" onclick="register()">إنشاء حساب ←</button>
+  </div>
+
+  <!-- PENDING NOTICE -->
+  <div id="pending-notice" class="pending-notice">
+    <h3>⏳ حسابك قيد المراجعة</h3>
+    <p>تم إنشاء حسابك بنجاح!<br>تواصل معنا عبر WhatsApp لتفعيل اشتراكك والوصول للتطبيق.</p>
+    <a href="https://wa.me/212000000000?text=مرحباً، أريد تفعيل حسابي في JobMailer" class="wa-link" target="_blank">
+      💬 تواصل عبر WhatsApp
+    </a>
+  </div>
+
+  <div class="back-link">
+    <a href="jobmailer-landing.html">← العودة للصفحة الرئيسية</a>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://rktxrcvgdhqtkooawmmk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_HeHtbOGSyjEyRyrbMo1YmA_KAIg0qR_';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function showTab(tab) {
+  document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  hideMsg();
+}
+
+function showMsg(text, type='error') {
+  const el = document.getElementById('msg');
+  el.textContent = text; el.className = 'msg ' + type; el.style.display = 'block';
+}
+function hideMsg() { document.getElementById('msg').style.display = 'none'; }
+
+async function login() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { showMsg('أدخل البريد الإلكتروني وكلمة المرور'); return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.innerHTML = 'جاري الدخول... <span class="spinner"></span>';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+  if (error) {
+    showMsg('بيانات خاطئة — تحقق من الإيميل وكلمة المرور');
+    btn.disabled = false; btn.innerHTML = 'دخول ←';
+    return;
+  }
+
+  // Check if user is active
+  const { data: profile } = await sb.from('profiles').select('status, role').eq('id', data.user.id).single();
+
+  if (!profile || profile.status === 'pending') {
+    await sb.auth.signOut();
+    btn.disabled = false; btn.innerHTML = 'دخول ←';
+    document.getElementById('form-login').style.display = 'none';
+    document.getElementById('pending-notice').style.display = 'block';
+    return;
+  }
+
+  if (profile.role === 'admin') {
+    window.location.href = 'admin.html';
+  } else {
+    window.location.href = 'jobmailer-app.html';
+  }
+}
+
+async function register() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+
+  if (!name) { showMsg('أدخل اسمك الكامل'); return; }
+  if (!email) { showMsg('أدخل البريد الإلكتروني'); return; }
+  if (pass.length < 8) { showMsg('كلمة المرور يجب أن تكون 8 أحرف على الأقل'); return; }
+
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.innerHTML = 'جاري الإنشاء... <span class="spinner"></span>';
+
+  const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+
+  if (error) {
+    showMsg(error.message.includes('already') ? 'هذا الإيميل مسجل مسبقاً — سجّل الدخول' : 'حدث خطأ — حاول مرة أخرى');
+    btn.disabled = false; btn.innerHTML = 'إنشاء حساب ←';
+    return;
+  }
+
+  // Create profile with pending status
+  await sb.from('profiles').insert({ id: data.user.id, email, full_name: name, status: 'pending', role: 'user', plan: 'free', created_at: new Date().toISOString() });
+
+  btn.disabled = false; btn.innerHTML = 'إنشاء حساب ←';
+  document.getElementById('form-register').style.display = 'none';
+  document.querySelector('.tabs').style.display = 'none';
+  document.getElementById('pending-notice').style.display = 'block';
+}
+
+// Check if already logged in
+sb.auth.getSession().then(async ({ data }) => {
+  if (data.session) {
+    const { data: profile } = await sb.from('profiles').select('status, role').eq('id', data.session.user.id).single();
+    if (profile && profile.status === 'active') {
+      window.location.href = profile.role === 'admin' ? 'admin.html' : 'jobmailer-app.html';
+    }
+  }
+});
+</script>
+</body>
+</html>

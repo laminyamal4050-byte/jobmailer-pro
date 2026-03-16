@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JOBMAILER.DE</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── AUTH CHECK ──
+const _sb = supabase.createClient('https://rktxrcvgdhqtkooawmmk.supabase.co', 'sb_publishable_HeHtbOGSyjEyRyrbMo1YmA_KAIg0qR_');
+
+(async () => {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { window.location.href = 'jobmailer-auth.html'; return; }
+  
+  const { data: profile } = await _sb.from('profiles').select('status, plan, full_name').eq('id', session.user.id).single();
+  
+  if (!profile || profile.status !== 'active') {
+    await _sb.auth.signOut();
+    window.location.href = 'jobmailer-auth.html';
+    return;
+  }
+  
+  // Store user info
+  window._userPlan = profile.plan || 'free';
+  window._userName = profile.full_name || session.user.email;
+  window._userId = session.user.id;
+  window._supabase = _sb;
+})();
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#ffd700;--dark:#1a1a2e;--bg:#f0f0f0;--white:#fff;--green:#2e7d32;--blue:#1565c0;--red:#c62828;--orange:#e65100}
+body{background:var(--bg);color:#111;font-family:'IBM Plex Sans Arabic',sans-serif;font-size:15px}
+.page{display:none}.page.active{display:block}
+
+/* HEADER */
+.header{background:var(--dark);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.header h1{font-size:24px;font-weight:700;color:var(--gold);letter-spacing:2px}
+.header p{font-size:11px;color:#aaa;margin-top:2px}
+
+/* PROFILES BAR */
+.profiles-bar{background:#16213e;padding:8px 16px;display:flex;gap:8px;overflow-x:auto;align-items:center}
+.profile-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid transparent;white-space:nowrap;transition:all .2s;background:#0f3460;color:#aaa}
+.profile-btn.active{background:var(--gold);color:var(--dark);border-color:var(--gold)}
+.profile-btn:hover{border-color:var(--gold);color:var(--gold)}
+.profile-add{background:transparent;border:2px dashed #444;color:#666;padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;white-space:nowrap}
+.profile-add:hover{border-color:var(--gold);color:var(--gold)}
+
+/* CARD */
+.card{background:#fff;border-radius:8px;padding:18px;margin:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card-title{font-size:12px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--gold)}
+
+/* FIELDS */
+.field{margin-bottom:11px}
+.field label{display:block;font-size:11px;font-weight:700;color:#666;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+.field input,.field textarea,.field select{width:100%;padding:10px 12px;border:2px solid #ddd;border-radius:6px;font-size:14px;font-family:'IBM Plex Sans Arabic',sans-serif;color:#111;background:#fff;outline:none;transition:border-color .2s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--dark)}
+.field textarea{resize:vertical;min-height:70px}
+.hint{font-size:11px;color:#999;margin-top:3px}
+.hint a{color:var(--blue)}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;text-align:center;margin-bottom:8px;font-family:'IBM Plex Sans Arabic',sans-serif;transition:all .2s}
+.btn-yellow{background:var(--gold);color:var(--dark)}.btn-yellow:hover{background:#ffcc00}
+.btn-dark{background:var(--dark);color:#fff}.btn-dark:hover{opacity:.9}
+.btn-red{background:var(--red);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn-outline{background:#fff;color:var(--dark);border:2px solid var(--dark)}
+.btn-sm{width:auto;padding:7px 13px;font-size:12px;margin-bottom:0;display:inline-block}
+.btn-danger-sm{width:auto;padding:7px 13px;font-size:12px;margin-bottom:0;display:inline-block;background:#ffebee;color:var(--red);border:1px solid #ef5350;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px}
+.stat{background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.stat-num{font-size:28px;font-weight:700;color:var(--dark)}
+.stat-lbl{font-size:10px;color:#999;margin-top:2px;text-transform:uppercase}
+
+/* ADVANCED STATS */
+.adv-stats{margin:0 12px 10px;background:#fff;border-radius:8px;padding:13px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.adv-title{font-size:11px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.adv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px}
+.adv-item{display:flex;flex-direction:column;gap:2px}
+.adv-item span{font-size:11px;color:#999}
+.adv-item strong{font-size:16px;font-weight:700}
+.prog-bar{background:#f0f0f0;border-radius:4px;height:5px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;background:var(--dark);transition:width .5s}
+
+/* TABS */
+.tabs{display:flex;margin:0 12px;border-bottom:2px solid #ddd}
+.tab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:700;cursor:pointer;color:#999;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--dark);border-bottom-color:var(--gold)}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{background:var(--dark);color:#fff;padding:8px;text-align:right;font-size:10px;text-transform:uppercase}
+.tbl td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+.tbl tr:hover td{background:#fafafa}
+
+/* STATUS */
+.status{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.s-pending{background:#fff8e1;color:#f57f17;border:1px solid var(--gold)}
+.s-sent{background:#e8f5e9;color:var(--green);border:1px solid #4caf50}
+.s-replied{background:#e3f2fd;color:var(--blue);border:1px solid #42a5f5}
+.s-rejected{background:#ffebee;color:var(--red);border:1px solid #ef5350}
+.s-sending{background:#f3e5f5;color:#6a1b9a;border:1px solid #9c27b0;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* LOG */
+.logbox{background:var(--dark);color:#fff;padding:11px;border-radius:6px;height:110px;overflow-y:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.8;margin-bottom:11px}
+.log-ok{color:#69f0ae}.log-err{color:#ff5252}.log-info{color:var(--gold)}.log-warn{color:#ffab40}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:14px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:10px;width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column}
+.modal-head{padding:13px 18px;border-bottom:2px solid #f0f0f0}
+.modal-head h3{font-size:13px;color:var(--dark);font-weight:700}
+.modal-head p{font-size:11px;color:#999;margin-top:2px}
+.modal-body{padding:14px 18px;overflow-y:auto;flex:1}
+.modal-foot{padding:11px 18px;border-top:2px solid #f0f0f0;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.email-subject{background:#fff8e1;border:2px solid var(--gold);border-radius:6px;padding:9px 12px;font-size:13px;font-weight:700;margin-bottom:10px}
+.email-body{background:#f8f8f8;border:2px solid #e0e0e0;border-radius:6px;padding:13px;font-size:13px;line-height:1.8;white-space:pre-wrap;min-height:140px}
+.email-edit{background:#fff;border:2px solid var(--dark);border-radius:6px;padding:13px;font-size:13px;line-height:1.8;width:100%;min-height:140px;resize:vertical;outline:none;font-family:'IBM Plex Sans Arabic',sans-serif}
+.subject-edit{background:#fff;border:2px solid var(--dark);border-radius:6px;padding:9px 12px;font-size:13px;width:100%;margin-bottom:10px;outline:none;font-family:'IBM Plex Sans Arabic',sans-serif}
+.spinner{width:26px;height:26px;border:3px solid #eee;border-top-color:var(--dark);border-radius:50%;animation:spin .7s linear infinite;margin:28px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.generating{text-align:center;padding:28px;color:#999;font-size:13px}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:700;z-index:1000;display:none;white-space:nowrap}
+.toast.success{background:var(--green)}.toast.error{background:var(--red)}
+
+/* PROGRESS */
+.progress{background:#e0e0e0;border-radius:4px;height:7px;margin-bottom:7px;overflow:hidden}
+.progress-fill{height:100%;background:var(--gold);transition:width .5s}
+
+/* WARMUP */
+.warmup{background:#16213e;padding:7px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:#aaa}
+.warmup-bar{flex:1;max-width:90px;height:3px;background:#444;border-radius:2px;overflow:hidden}
+.warmup-fill{height:100%;background:var(--gold)}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed #ccc;border-radius:6px;padding:12px;text-align:center;cursor:pointer;background:#fafafa;transition:all .2s}
+.upload-zone:hover{border-color:var(--dark)}.upload-zone.has{border-color:var(--green);border-style:solid;background:#e8f5e9}
+input[type=file]{display:none}
+
+/* SEARCH */
+.search-row{display:flex;gap:8px;margin-bottom:11px;flex-wrap:wrap}
+.search-input{flex:1;padding:8px 12px;border:2px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;outline:none;min-width:120px}
+.search-input:focus{border-color:var(--dark)}
+.filter-select{padding:8px;border:2px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;outline:none}
+
+/* ADD ROW */
+.add-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+@media(min-width:600px){.add-row{grid-template-columns:1fr 1fr 1fr auto}}
+
+/* REMINDER */
+.reminder-tag{display:inline-block;background:#fff3e0;color:var(--orange);border:1px solid #ffab40;border-radius:4px;font-size:10px;padding:2px 6px;margin-top:2px}
+
+/* PROFILE SETUP MODAL */
+.profile-modal{background:#fff;border-radius:10px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+.profile-modal-head{padding:16px 20px;border-bottom:2px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center}
+.profile-modal-head h3{font-size:14px;font-weight:700;color:var(--dark)}
+.profile-color{width:32px;height:32px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.2);display:inline-block;cursor:pointer}
+.color-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.color-option{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s}
+.color-option.selected{border-color:var(--dark);transform:scale(1.2)}
+
+/* DELETE PROFILE */
+.profile-actions{display:flex;gap:8px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- MAIN PAGE -->
+<div id="page-main" class="page active">
+  <div class="header">
+    <div>
+      <h1>JOBMAILER.DE</h1>
+      <p id="header-sub">Ausbildung · 🇲🇦 → 🇩🇪</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span id="berlin-badge" style="font-size:11px;color:#aaa">برلين --:--</span>
+      <span id="plan-badge" style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(0,200,83,.15);border:1px solid rgba(0,200,83,.3);color:#00c853">free</span>
+      <button onclick="openSettings()" style="background:transparent;border:1px solid #444;color:#aaa;padding:5px 10px;font-size:11px;cursor:pointer;border-radius:4px">⚙️</button>
+      <button onclick="logoutUser()" style="background:transparent;border:1px solid #444;color:#aaa;padding:5px 10px;font-size:11px;cursor:pointer;border-radius:4px">خروج</button>
+    </div>
+  </div>
+
+  <!-- PROFILES BAR -->
+  <div class="profiles-bar" id="profiles-bar">
+    <button class="profile-add" onclick="addProfile()">＋ مجال جديد</button><span style="font-size:10px;color:#444;margin-right:4px">✏️ ضغطة مزدوجة للتعديل</span>
+  </div>
+
+  <!-- WARMUP -->
+  <div class="warmup">
+    <span>الأسبوع <span id="week-num">1</span></span>
+    <div class="warmup-bar"><div class="warmup-fill" id="warmup-fill" style="width:0%"></div></div>
+    <span id="warmup-label">0/20 اليوم</span>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">إجمالي</div></div>
+    <div class="stat"><div class="stat-num" id="s-sent" style="color:var(--green)">0</div><div class="stat-lbl">أُرسل</div></div>
+    <div class="stat"><div class="stat-num" id="s-replied" style="color:var(--blue)">0</div><div class="stat-lbl">ردوا</div></div>
+  </div>
+  <div class="stats" style="margin-top:-4px">
+    <div class="stat"><div class="stat-num" id="s-rejected" style="color:var(--red)">0</div><div class="stat-lbl">رُفض</div></div>
+    <div class="stat"><div class="stat-num" id="s-pending" style="color:#f57f17">0</div><div class="stat-lbl">معلق</div></div>
+    <div class="stat"><div class="stat-num" id="s-reminder" style="color:var(--orange)">0</div><div class="stat-lbl">تذكير</div></div>
+  </div>
+
+  <!-- ADVANCED STATS -->
+  <div class="adv-stats">
+    <div class="adv-title">📊 إحصائيات — <span id="current-profile-name" style="color:var(--gold)">—</span></div>
+    <div class="adv-grid">
+      <div class="adv-item"><span>نسبة الرد</span><strong id="reply-rate" style="color:var(--blue)">0%</strong></div>
+      <div class="adv-item"><span>نسبة القبول</span><strong id="accept-rate" style="color:var(--green)">0%</strong></div>
+      <div class="adv-item"><span>أُرسل اليوم</span><strong id="today-sent-num" style="color:#f57f17">0</strong></div>
+      <div class="adv-item"><span>حالة برلين</span><strong id="berlin-status">--:--</strong></div>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="week-progress" style="width:0%"></div></div>
+    <div style="font-size:10px;color:#999;margin-top:4px" id="week-label">تقدم الأسبوع: 0/20</div>
+  </div>
+
+  <!-- SEND BUTTONS -->
+  <div style="margin:0 12px 12px">
+    <div id="progress-wrap" style="display:none;margin-bottom:8px">
+      <div class="progress"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#999">
+        <span id="progress-label">جاري الإرسال...</span><span id="progress-pct">0%</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;background:#fff;padding:10px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.06)">
+      <span style="font-size:12px;font-weight:700;color:#555">وضع الإرسال:</span>
+      <button id="mode-manual" class="btn btn-sm" onclick="setMode('manual')" style="background:var(--dark);color:#fff;flex:1">👁️ مع معاينة</button>
+      <button id="mode-auto" class="btn btn-sm" onclick="setMode('auto')" style="background:#eee;color:#555;flex:1">⚡ تلقائي</button>
+    </div>
+    <div id="auto-delay-wrap" style="display:none;background:#fff8e1;border:1px solid var(--gold);border-radius:6px;padding:10px;margin-bottom:8px;font-size:12px">
+      ⏱️ انتظار <strong id="delay-seconds">5</strong> ثانية قبل الإرسال
+      <input type="range" min="3" max="30" value="5" oninput="document.getElementById('delay-seconds').textContent=this.value" id="delay-range" style="width:100%;margin-top:6px">
+    </div>
+    <button class="btn btn-yellow" id="send-btn" onclick="startSending()">🚀 بدء الإرسال</button>
+    <button class="btn btn-red" id="stop-btn" onclick="stopSending()" style="display:none">⛔ إيقاف</button>
+    <button class="btn btn-green" id="reminder-btn" onclick="sendReminders()" style="display:none">🔔 تذكيرات (<span id="reminder-count">0</span>)</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('companies',this)">➕ الشركات</button>
+    <button class="tab" onclick="showTab('tracker',this)">📊 المتابعة</button>
+  </div>
+
+  <!-- COMPANIES TAB -->
+  <div id="tab-companies">
+    <div class="card">
+      <div class="card-title">إضافة شركات</div>
+      <div class="search-row">
+        <input class="search-input" id="search-input" placeholder="🔍 ابحث..." onkeyup="filterCompanies()">
+        <select class="filter-select" id="filter-status" onchange="filterCompanies()">
+          <option value="">كل الحالات</option>
+          <option value="pending">معلق</option>
+          <option value="sent">أُرسل</option>
+          <option value="replied">رد</option>
+          <option value="rejected">رُفض</option>
+        </select>
+      </div>
+      <div class="add-row">
+        <div class="field" style="margin:0"><label>الشركة (اختياري)</label><input id="co-name" placeholder="KFZ GmbH"></div>
+        <div class="field" style="margin:0"><label>البريد *</label><input id="co-email" placeholder="info@firma.de" required></div>
+        <div class="field" style="margin:0"><label>المدير</label><input id="co-ceo" placeholder="Herr Müller"></div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:1px">
+          <button class="btn btn-dark btn-sm" onclick="addCompany()">+ إضافة</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>✏️ جملة مخصصة (اختياري)</label>
+        <input id="co-note" placeholder="مثال: Ihr Unternehmen ist bekannt für seine modernen Fahrzeuge">
+        <div class="hint">ستُضاف تلقائياً في الإيميل لهذه الشركة فقط</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <label for="csv-input" style="cursor:pointer"><div class="btn btn-outline btn-sm">📥 CSV</div></label>
+        <input id="csv-input" type="file" accept=".csv" onchange="importCSV(this)">
+        <button onclick="exportCSV()" class="btn btn-sm" style="background:#e8f5e9;color:var(--green);border:1px solid #4caf50">📤 تصدير</button>
+        <button onclick="clearAll()" class="btn-danger-sm">🗑 حذف الكل</button>
+      </div>
+      <div id="companies-wrap"><div style="text-align:center;padding:28px;color:#ccc;font-size:13px">أضف شركات أو استورد CSV</div></div>
+    </div>
+  </div>
+
+  <!-- TRACKER TAB -->
+  <div id="tab-tracker" style="display:none">
+    <div class="card">
+      <div class="card-title">سجل الأنشطة</div>
+      <div class="logbox" id="logbox"><span style="color:#444">// سجل الإرسال...</span></div>
+      <div id="tracker-wrap"><div style="text-align:center;padding:28px;color:#ccc;font-size:13px">لا توجد شركات</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div id="page-settings" class="page">
+  <div class="header">
+    <div><h1>JOBMAILER.DE</h1><p>الإعدادات العامة</p></div>
+    <button onclick="saveSettings()" style="background:var(--gold);border:none;color:var(--dark);padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">💾 حفظ</button>
+  </div>
+  <div class="card">
+    <div class="card-title">📧 Gmail</div>
+    <div class="field"><label>Gmail *</label><input id="cfg-gmail" type="email" placeholder="example@gmail.com"></div>
+    <div class="field">
+      <label>App Password *</label>
+      <input id="cfg-pass" type="password" placeholder="xxxx xxxx xxxx xxxx">
+      <div class="hint">من: <a href="https://myaccount.google.com/apppasswords" target="_blank">myaccount.google.com/apppasswords</a></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔗 Apps Script Proxy</div>
+    <div class="field">
+      <label>رابط Web App *</label>
+      <input id="cfg-proxy" type="url" placeholder="https://script.google.com/macros/s/...">
+      <div class="hint">من script.google.com → Deploy → Web App</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">👤 بياناتك المشتركة</div>
+    <div class="field"><label>الاسم الكامل *</label><input id="cfg-name" placeholder="Bilal Lzrague"></div>
+    <div class="field"><label>رقم الهاتف</label><input id="cfg-phone" placeholder="+212 6..."></div>
+    <div class="field"><label>مدينة الإقامة</label><input id="cfg-city" placeholder="Meknès"></div>
+    <div class="field">
+      <label>الجنس</label>
+      <select id="cfg-gender">
+        <option value="male">ذكر 👨</option>
+        <option value="female">أنثى 👩</option>
+      </select>
+    </div>
+  </div>
+  <div style="padding:0 12px 20px">
+    <button class="btn btn-yellow" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+    <button class="btn btn-outline" onclick="showPage('main')">← رجوع</button>
+  </div>
+</div>
+
+<!-- PROFILE SETUP OVERLAY -->
+<div class="overlay" id="profile-overlay">
+  <div class="profile-modal">
+    <div class="profile-modal-head">
+      <h3 id="profile-modal-title">➕ مجال جديد</h3>
+      <button onclick="closeProfileModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div class="field">
+        <label>اسم المجال *</label>
+        <select id="p-job">
+          <option value="KFZ-Mechatroniker">🔧 KFZ-Mechatroniker</option>
+          <option value="Elektroniker">⚡ Elektroniker</option>
+          <option value="Fachinformatiker">💻 Fachinformatiker</option>
+          <option value="Koch">👨‍🍳 Koch</option>
+          <option value="Einzelhandelskaufmann">🛒 Einzelhandelskaufmann</option>
+          <option value="Industriemechaniker">⚙️ Industriemechaniker</option>
+          <option value="Maler und Lackierer">🎨 Maler und Lackierer</option>
+          <option value="Tischler">🪚 Tischler</option>
+          <option value="Friseur">✂️ Friseur</option>
+          <option value="Bürokaufmann">📋 Bürokaufmann</option>
+          <option value="Pflegefachmann">🏥 Pflegefachmann</option>
+          <option value="Pflegefachfrau">🏥 Pflegefachfrau</option>
+          <option value="Maurer">🧱 Maurer</option>
+          <option value="Anlagenmechaniker">🔩 Anlagenmechaniker</option>
+          <option value="custom">✏️ أكتب مجالك...</option>
+        </select>
+      </div>
+      <div class="field" id="custom-job-wrap" style="display:none">
+        <label>اكتب المجال بالألمانية</label>
+        <input id="p-job-custom" placeholder="مثال: Bäcker, Zahntechniker...">
+      </div>
+      <div class="field">
+        <label>لون المجال</label>
+        <div class="color-picker" id="color-picker">
+          <div class="color-option selected" style="background:#ffd700" data-color="#ffd700" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#4caf50" data-color="#4caf50" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#42a5f5" data-color="#42a5f5" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#ef5350" data-color="#ef5350" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#ab47bc" data-color="#ab47bc" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#ff7043" data-color="#ff7043" onclick="selectColor(this)"></div>
+          <div class="color-option" style="background:#26c6da" data-color="#26c6da" onclick="selectColor(this)"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>CV — PDF خاص بهذا المجال</label>
+        <label for="p-cv-input">
+          <div class="upload-zone" id="p-cv-zone">
+            <div style="font-size:22px;margin-bottom:4px">⬆️</div>
+            <div style="font-size:12px;color:#999">اضغط لرفع CV.pdf</div>
+          </div>
+        </label>
+        <input id="p-cv-input" type="file" accept=".pdf">
+      </div>
+      <div class="profile-actions">
+        <button class="btn btn-yellow" style="flex:1" onclick="saveProfile()">✅ حفظ المجال</button>
+        <button class="btn-danger-sm" id="delete-profile-btn" onclick="deleteCurrentProfile()" style="display:none">🗑 حذف</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <div class="modal-head"><h3>👁️ معاينة الإيميل</h3><p id="modal-to">—</p></div>
+    <div class="modal-body" id="modal-body"><div class="generating"><div class="spinner"></div><p>جاري الكتابة...</p></div></div>
+    <div class="modal-foot">
+      <span id="modal-counter" style="font-size:11px;color:#999;margin-left:auto"></span>
+      <div id="countdown-wrap" style="display:none;align-items:center;gap:8px;margin-left:auto">
+        <div style="font-size:11px;color:#999">إرسال تلقائي خلال</div>
+        <div id="countdown-num" style="font-size:18px;font-weight:700;color:var(--gold);min-width:24px;text-align:center">5</div>
+        <div style="font-size:11px;color:#999">ثانية</div>
+      </div>
+      <button class="btn btn-outline btn-sm" id="edit-btn" onclick="toggleEdit()">✏️ تعديل</button>
+      <button class="btn btn-sm" style="background:#eee;color:#333;border:none" onclick="decide('stop')">⛔ إيقاف</button>
+      <button class="btn btn-outline btn-sm" onclick="decide('skip')">⏭️ تخطي</button>
+      <button class="btn btn-yellow btn-sm" onclick="decide('send')">📨 إرسال</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let globalConfig = {}; // gmail, pass, proxy, name, phone, city
+let profiles = [];     // [{id, job, color, cvBase64, cvName, companies, startDate}]
+let activeProfileId = null;
+let sending = false, cancelFlag = false, sendMode = 'manual';
+let resolvePreview = null, editMode = false, curSubject = '', curBody = '';
+let editingProfileId = null;
+let selectedColor = '#ffd700';
+let tempCV = null, tempCVName = 'Lebenslauf.pdf';
+
+const COLORS = ['#ffd700','#4caf50','#42a5f5','#ef5350','#ab47bc','#ff7043','#26c6da'];
+const MAX_PROFILES = 6;
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+window.onload = () => {
+  loadData();
+  updateBerlin();
+  setInterval(updateBerlin, 30000);
+
+  document.getElementById('p-job').onchange = e => {
+    document.getElementById('custom-job-wrap').style.display = e.target.value === 'custom' ? 'block' : 'none';
+  };
+
+  document.getElementById('p-cv-input').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    tempCVName = f.name;
+    const r = new FileReader();
+    r.onload = ev => { tempCV = ev.target.result.split(',')[1]; };
+    r.readAsDataURL(f);
+    document.getElementById('p-cv-zone').innerHTML = '<div style="font-size:20px;margin-bottom:3px">✅</div><div style="font-size:12px;color:#2e7d32;font-weight:700">' + f.name + '</div>';
+    document.getElementById('p-cv-zone').classList.add('has');
+  };
+};
+
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+function loadData() {
+  try {
+    const gc = localStorage.getItem('jm_global');
+    if (gc) globalConfig = JSON.parse(gc);
+    const pr = localStorage.getItem('jm_profiles');
+    if (pr) profiles = JSON.parse(pr);
+  } catch(e) {}
+
+  if (!profiles.length) {
+    showPage('settings');
+    return;
+  }
+
+  renderProfilesBar();
+  if (!activeProfileId || !profiles.find(p => p.id === activeProfileId)) {
+    activeProfileId = profiles[0].id;
+  }
+  activateProfile(activeProfileId);
+}
+
+function saveData() {
+  try {
+    localStorage.setItem('jm_global', JSON.stringify(globalConfig));
+    localStorage.setItem('jm_profiles', JSON.stringify(profiles));
+  } catch(e) {}
+}
+
+function getProfile(id) {
+  return profiles.find(p => p.id === (id || activeProfileId));
+}
+
+function getActiveProfile() {
+  return getProfile(activeProfileId);
+}
+
+// ══════════════════════════════════════════
+// PROFILES
+// ══════════════════════════════════════════
+function renderProfilesBar() {
+  const bar = document.getElementById('profiles-bar');
+  let html = '';
+  profiles.forEach(p => {
+    const isActive = p.id === activeProfileId;
+    html += '<button class="profile-btn' + (isActive ? ' active' : '') + '" onclick="activateProfile(' + p.id + ')" style="' + (isActive ? 'background:' + p.color + ';color:#111;border-color:' + p.color : 'border-color:' + p.color + ';color:' + p.color) + '" ondblclick="editProfile(' + p.id + ')">' + p.job + '</button>';
+  });
+  if (profiles.length < MAX_PROFILES) {
+    html += '<button class="profile-add" onclick="addProfile()">＋ مجال جديد</button><span style="font-size:10px;color:#444;margin-right:4px">✏️ ضغطة مزدوجة للتعديل</span>';
+  }
+  bar.innerHTML = html;
+}
+
+function activateProfile(id) {
+  activeProfileId = id;
+  const p = getActiveProfile();
+  if (!p) return;
+  document.getElementById('current-profile-name').textContent = p.job;
+  document.getElementById('header-sub').textContent = p.job + ' · Ausbildung · 🇲🇦 → 🇩🇪';
+  renderProfilesBar();
+  renderAll();
+  updateStats();
+  updateWarmup();
+}
+
+function addProfile() {
+  if (profiles.length >= MAX_PROFILES) { toast('الحد الأقصى 6 مجالات!', 'error'); return; }
+  editingProfileId = null;
+  tempCV = null; tempCVName = 'Lebenslauf.pdf';
+  selectedColor = COLORS[profiles.length % COLORS.length];
+  document.getElementById('p-job').value = 'KFZ-Mechatroniker';
+  document.getElementById('custom-job-wrap').style.display = 'none';
+  document.getElementById('p-cv-zone').innerHTML = '<div style="font-size:22px;margin-bottom:4px">⬆️</div><div style="font-size:12px;color:#999">اضغط لرفع CV.pdf</div>';
+  document.getElementById('p-cv-zone').classList.remove('has');
+  document.getElementById('profile-modal-title').textContent = '➕ مجال جديد';
+  document.getElementById('delete-profile-btn').style.display = 'none';
+  updateColorPicker();
+  document.getElementById('profile-overlay').classList.add('show');
+}
+
+function editProfile(id) {
+  const p = getProfile(id);
+  if (!p) return;
+  editingProfileId = id;
+  tempCV = p.cvBase64 || null;
+  tempCVName = p.cvName || 'Lebenslauf.pdf';
+  selectedColor = p.color;
+  document.getElementById('p-job').value = p.job;
+  document.getElementById('custom-job-wrap').style.display = 'none';
+  if (p.cvBase64) {
+    document.getElementById('p-cv-zone').innerHTML = '<div style="font-size:20px;margin-bottom:3px">✅</div><div style="font-size:12px;color:#2e7d32;font-weight:700">' + p.cvName + '</div>';
+    document.getElementById('p-cv-zone').classList.add('has');
+  }
+  document.getElementById('profile-modal-title').textContent = '✏️ تعديل: ' + p.job;
+  document.getElementById('delete-profile-btn').style.display = profiles.length > 1 ? 'block' : 'none';
+  updateColorPicker();
+  document.getElementById('profile-overlay').classList.add('show');
+}
+
+function saveProfile() {
+  const jobSel = document.getElementById('p-job').value;
+  const job = jobSel === 'custom' ? document.getElementById('p-job-custom').value.trim() : jobSel;
+  if (!job) { toast('أدخل اسم المجال', 'error'); return; }
+
+  if (editingProfileId) {
+    const p = getProfile(editingProfileId);
+    if (p) {
+      p.job = job;
+      p.color = selectedColor;
+      if (tempCV) { p.cvBase64 = tempCV; p.cvName = tempCVName; }
+    }
+  } else {
+    const newProfile = {
+      id: Date.now(),
+      job, color: selectedColor,
+      cvBase64: tempCV, cvName: tempCVName,
+      companies: [],
+      startDate: new Date().toISOString()
+    };
+    profiles.push(newProfile);
+    activeProfileId = newProfile.id;
+  }
+
+  saveData();
+  renderProfilesBar();
+  activateProfile(activeProfileId);
+  closeProfileModal();
+  toast('✅ تم حفظ المجال!', 'success');
+}
+
+function deleteCurrentProfile() {
+  if (profiles.length <= 1) { toast('يجب أن يبقى مجال واحد على الأقل', 'error'); return; }
+  if (!confirm('حذف هذا المجال وكل شركاته؟')) return;
+  profiles = profiles.filter(p => p.id !== editingProfileId);
+  if (activeProfileId === editingProfileId) activeProfileId = profiles[0].id;
+  saveData();
+  renderProfilesBar();
+  activateProfile(activeProfileId);
+  closeProfileModal();
+  toast('✅ تم حذف المجال', 'success');
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-overlay').classList.remove('show');
+  editingProfileId = null;
+}
+
+function selectColor(el) {
+  selectedColor = el.dataset.color;
+  updateColorPicker();
+}
+
+function updateColorPicker() {
+  document.querySelectorAll('.color-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.color === selectedColor);
+  });
+}
+
+// ══════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════
+function openSettings() {
+  document.getElementById('cfg-gmail').value = globalConfig.gmail || '';
+  document.getElementById('cfg-pass').value = globalConfig.pass || '';
+  document.getElementById('cfg-proxy').value = globalConfig.proxy || '';
+  document.getElementById('cfg-name').value = globalConfig.name || '';
+  document.getElementById('cfg-phone').value = globalConfig.phone || '';
+  document.getElementById('cfg-city').value = globalConfig.city || '';
+  document.getElementById('cfg-gender').value = globalConfig.gender || 'male';
+  showPage('settings');
+}
+
+function saveSettings() {
+  const name = document.getElementById('cfg-name').value.trim();
+  const gmail = document.getElementById('cfg-gmail').value.trim();
+  const pass = document.getElementById('cfg-pass').value.trim();
+  const proxy = document.getElementById('cfg-proxy').value.trim();
+  if (!name) { alert('⚠️ أدخل اسمك الكامل'); return; }
+  if (!gmail) { alert('⚠️ أدخل Gmail'); return; }
+  if (!pass) { alert('⚠️ أدخل App Password'); return; }
+  if (!proxy) { alert('⚠️ أدخل رابط Apps Script Proxy'); return; }
+  globalConfig = { name, gmail, pass, proxy, phone: document.getElementById('cfg-phone').value.trim(), city: document.getElementById('cfg-city').value.trim(), gender: document.getElementById('cfg-gender').value };
+  saveData();
+
+  if (!profiles.length) {
+    addProfile();
+  } else {
+    showPage('main');
+    toast('✅ تم حفظ الإعدادات!', 'success');
+  }
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// BERLIN TIME
+// ══════════════════════════════════════════
+function setMode(mode) {
+  sendMode = mode;
+  const btnManual = document.getElementById('mode-manual');
+  const btnAuto = document.getElementById('mode-auto');
+  const delayWrap = document.getElementById('auto-delay-wrap');
+  if (mode === 'manual') {
+    btnManual.style.background = 'var(--dark)'; btnManual.style.color = '#fff';
+    btnAuto.style.background = '#eee'; btnAuto.style.color = '#555';
+    delayWrap.style.display = 'none';
+  } else {
+    btnAuto.style.background = 'var(--dark)'; btnAuto.style.color = '#fff';
+    btnManual.style.background = '#eee'; btnManual.style.color = '#555';
+    delayWrap.style.display = 'block';
+  }
+}
+
+function updateBerlin() {
+  const b = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  const h = b.getHours(), d = b.getDay(), biz = d >= 1 && d <= 5 && h >= 8 && h < 17;
+  const t = b.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('berlin-badge').textContent = 'برلين ' + t + ' ' + (biz ? '🟢' : '🔴');
+  const bs = document.getElementById('berlin-status');
+  if (bs) bs.innerHTML = '<span style="color:' + (biz ? '#2e7d32' : '#c62828') + '">' + t + ' ' + (biz ? '🟢' : '🔴') + '</span>';
+}
+
+// ══════════════════════════════════════════
+// WARMUP
+// ══════════════════════════════════════════
+function getWeek() {
+  const p = getActiveProfile();
+  if (!p) return 1;
+  try { return Math.min(3, Math.floor((Date.now() - new Date(p.startDate).getTime()) / (7 * 86400000)) + 1); } catch(e) { return 1; }
+}
+
+function getTodaySent() {
+  try {
+    const p = getActiveProfile();
+    if (!p) return 0;
+    const key = 'jm_sent_' + (p.id) + '_' + new Date().toDateString();
+    return parseInt(localStorage.getItem(key) || '0');
+  } catch(e) { return 0; }
+}
+
+function incSent() {
+  try {
+    const p = getActiveProfile();
+    if (!p) return;
+    const key = 'jm_sent_' + p.id + '_' + new Date().toDateString();
+    localStorage.setItem(key, getTodaySent() + 1);
+  } catch(e) {}
+  updateWarmup();
+}
+
+function updateWarmup() {
+  const week = getWeek();
+  const limits = { 1: 20, 2: 50, 3: 100 };
+  const limit = limits[week] || 100;
+  const sent = getTodaySent();
+  const rem = Math.max(0, limit - sent);
+  document.getElementById('week-num').textContent = week;
+  document.getElementById('warmup-fill').style.width = Math.min(100, (sent / limit) * 100) + '%';
+  document.getElementById('warmup-label').textContent = sent + '/' + limit + ' (' + rem + ' متبقي)';
+  const wp = document.getElementById('week-progress');
+  if (wp) wp.style.width = Math.min(100, (sent / limit) * 100) + '%';
+  const wl = document.getElementById('week-label');
+  if (wl) wl.textContent = 'تقدم الأسبوع: ' + sent + '/' + limit;
+  const ts = document.getElementById('today-sent-num');
+  if (ts) ts.textContent = sent;
+}
+
+// ══════════════════════════════════════════
+// COMPANIES
+// ══════════════════════════════════════════
+function getCompanies() {
+  const p = getActiveProfile();
+  return p ? p.companies : [];
+}
+
+function setCompanies(list) {
+  const p = getActiveProfile();
+  if (p) { p.companies = list; saveData(); }
+}
+
+function addCompany() {
+  const email = document.getElementById('co-email').value.trim();
+  if (!email) { toast('أدخل إيميل الشركة على الأقل', 'error'); return; }
+  const rawName = document.getElementById('co-name').value.trim();
+  const emailDomain = email.split('@')[1] || '';
+  const commonProviders = ['gmail.com','yahoo.com','hotmail.com','outlook.com','gmx.de','web.de','freenet.de','t-online.de'];
+  const name = rawName || (commonProviders.includes(emailDomain) ? email.split('@')[0] : emailDomain) || email.split('@')[0];
+  const companies = getCompanies();
+  companies.push({ id: Date.now(), name, email, ceo: document.getElementById('co-ceo').value.trim(), note: document.getElementById('co-note').value.trim(), status: 'pending', sentAt: null, reminderSent: false, reminder2Sent: false, reminder3Sent: false });
+  setCompanies(companies);
+  document.getElementById('co-name').value = '';
+  document.getElementById('co-email').value = '';
+  document.getElementById('co-ceo').value = '';
+  document.getElementById('co-note').value = '';
+  renderAll(); updateStats();
+}
+
+function importCSV(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    const rows = ev.target.result.split('\n').slice(1).filter(Boolean).map((line, i) => {
+      const [name, email, ceo] = line.split(',').map(s => s?.trim().replace(/"/g, '') || '');
+      return { id: Date.now() + i, name, email, ceo: ceo || '', status: 'pending', sentAt: null, reminderSent: false };
+    }).filter(r => r.name && r.email);
+    setCompanies([...getCompanies(), ...rows]);
+    renderAll(); updateStats();
+    toast('✅ استُورد ' + rows.length + ' شركة', 'success');
+  };
+  r.readAsText(f);
+}
+
+function exportCSV() {
+  const companies = getCompanies();
+  if (!companies.length) { toast('لا توجد شركات للتصدير', 'error'); return; }
+  const rows = ['name,email,ceo,status,sentAt'];
+  companies.forEach(co => {
+    rows.push('"' + co.name + '","' + co.email + '","' + (co.ceo||'') + '","' + co.status + '","' + (co.sentAt||'') + '"');
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = getActiveProfile().job + '-companies.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('✅ تم التصدير!', 'success');
+}
+
+function clearAll() {
+  if (!confirm('حذف كل شركات هذا المجال؟')) return;
+  setCompanies([]); renderAll(); updateStats();
+}
+
+function delCompany(id) {
+  setCompanies(getCompanies().filter(c => c.id !== id));
+  renderAll(); updateStats();
+}
+
+function setStatus(id, st) {
+  const companies = getCompanies();
+  const co = companies.find(c => c.id === id);
+  if (co) { co.status = st; setCompanies(companies); updateStats(); renderAll(); }
+}
+
+function daysSince(d) {
+  if (!d) return 0;
+  return Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+}
+
+function needsReminder(co) {
+  if (co.status !== 'sent') return false;
+  const days = daysSince(co.sentAt);
+  if (days >= 45 && !co.reminder3Sent) return true;
+  if (days >= 30 && !co.reminder2Sent) return true;
+  if (days >= 15 && !co.reminderSent) return true;
+  return false;
+}
+
+function getReminderStage(co) {
+  const days = daysSince(co.sentAt);
+  if (days >= 45 && !co.reminder3Sent) return 3;
+  if (days >= 30 && !co.reminder2Sent) return 2;
+  if (days >= 15 && !co.reminderSent) return 1;
+  return 0;
+}
+
+function filterCompanies() {
+  const search = document.getElementById('search-input')?.value.toLowerCase() || '';
+  const status = document.getElementById('filter-status')?.value || '';
+  const filtered = getCompanies().filter(co => {
+    const ms = !search || co.name.toLowerCase().includes(search) || co.email.toLowerCase().includes(search) || (co.ceo||'').toLowerCase().includes(search);
+    const mst = !status || co.status === status;
+    return ms && mst;
+  });
+  renderCompaniesTable(filtered);
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
+const SC = { pending:'s-pending', sent:'s-sent', replied:'s-replied', rejected:'s-rejected', sending:'s-sending' };
+const ST = { pending:'معلق ⏳', sent:'أُرسل ✓', replied:'رد ✓', rejected:'رُفض ✗', sending:'جاري...' };
+
+function renderAll() {
+  renderCompaniesTable(getCompanies());
+  renderTrackerTable();
+}
+
+function renderCompaniesTable(list) {
+  const cw = document.getElementById('companies-wrap');
+  if (!list.length) { cw.innerHTML = '<div style="text-align:center;padding:28px;color:#ccc;font-size:13px">أضف شركات أو استورد CSV</div>'; return; }
+  cw.innerHTML = '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>البريد</th><th>الحالة</th><th></th></tr></thead><tbody>' +
+    list.map(co => '<tr><td><strong>' + co.name + '</strong>' + (co.ceo ? '<br><small style="color:#999">' + co.ceo + '</small>' : '') + '</td><td style="font-size:12px;color:#777">' + co.email + '</td><td><span class="status ' + (SC[co.status]||'s-pending') + '">' + (ST[co.status]||'معلق') + '</span></td><td><button onclick="delCompany(' + co.id + ')" class="btn-danger-sm" style="padding:3px 7px;font-size:11px">✕</button></td></tr>').join('') +
+    '</tbody></table></div>';
+}
+
+function renderTrackerTable() {
+  const tw = document.getElementById('tracker-wrap');
+  const companies = getCompanies();
+  if (!companies.length) { tw.innerHTML = '<div style="text-align:center;padding:28px;color:#ccc;font-size:13px">لا توجد شركات</div>'; return; }
+  tw.innerHTML = '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>الإرسال</th><th>الأيام</th><th>الحالة</th><th>تحديث</th></tr></thead><tbody>' +
+    companies.map(co => '<tr><td><strong>' + co.name + '</strong>' + (needsReminder(co) ? '<div class="reminder-tag">⏰ تذكير ' + getReminderStage(co) + '/3</div>' : '') + '</td><td style="font-size:12px;color:#777">' + (co.sentAt ? new Date(co.sentAt).toLocaleDateString('de-DE') : '—') + '</td><td style="font-size:12px;color:#777">' + (co.sentAt ? daysSince(co.sentAt) + 'd' : '—') + '</td><td><span class="status ' + (SC[co.status]||'s-pending') + '">' + (ST[co.status]||'معلق') + '</span></td><td><select onchange="setStatus(' + co.id + ',this.value)" style="font-size:12px;padding:3px;border:1px solid #ddd;border-radius:4px"><option value="pending"' + (co.status==='pending'?' selected':'') + '>معلق</option><option value="sent"' + (co.status==='sent'?' selected':'') + '>أُرسل</option><option value="replied"' + (co.status==='replied'?' selected':'') + '>رد</option><option value="rejected"' + (co.status==='rejected'?' selected':'') + '>رُفض</option></select></td></tr>').join('') +
+    '</tbody></table></div>';
+}
+
+function updateStats() {
+  const companies = getCompanies();
+  document.getElementById('s-total').textContent = companies.length;
+  document.getElementById('s-sent').textContent = companies.filter(c => ['sent','replied'].includes(c.status)).length;
+  document.getElementById('s-replied').textContent = companies.filter(c => c.status === 'replied').length;
+  document.getElementById('s-rejected').textContent = companies.filter(c => c.status === 'rejected').length;
+  document.getElementById('s-pending').textContent = companies.filter(c => c.status === 'pending').length;
+  const rem = companies.filter(c => needsReminder(c) && !c.reminderSent).length;
+  document.getElementById('s-reminder').textContent = rem;
+  document.getElementById('reminder-count').textContent = rem;
+  document.getElementById('reminder-btn').style.display = rem > 0 ? 'block' : 'none';
+
+  const sent = companies.filter(c => ['sent','replied','rejected'].includes(c.status)).length;
+  const replied = companies.filter(c => c.status === 'replied').length;
+  const rejected = companies.filter(c => c.status === 'rejected').length;
+  const rr = document.getElementById('reply-rate');
+  const ar = document.getElementById('accept-rate');
+  if (rr) rr.textContent = sent > 0 ? Math.round((replied/sent)*100) + '%' : '0%';
+  if (ar) ar.textContent = (replied+rejected) > 0 ? Math.round((replied/(replied+rejected))*100) + '%' : '0%';
+  updateWarmup();
+}
+
+// ══════════════════════════════════════════
+// TABS & LOG
+// ══════════════════════════════════════════
+function showTab(name, btn) {
+  document.getElementById('tab-companies').style.display = name === 'companies' ? 'block' : 'none';
+  document.getElementById('tab-tracker').style.display = name === 'tracker' ? 'block' : 'none';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function addLog(msg, type = 'info') {
+  const box = document.getElementById('logbox');
+  const d = document.createElement('div');
+  d.className = 'log-' + type;
+  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  if (box.children.length === 1 && box.children[0].tagName === 'SPAN') box.innerHTML = '';
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ══════════════════════════════════════════
+// EMAIL
+// ══════════════════════════════════════════
+// خريطة المسميات الأنثوية
+const FEMALE_JOBS = {
+  'Koch': 'Köchin',
+  'Verkäufer': 'Verkäuferin',
+  'Pflegefachmann': 'Pflegefachfrau',
+  'Einzelhandelskaufmann': 'Einzelhandelskauffrau',
+  'Bürokaufmann': 'Bürokauffrau',
+  'Industriemechaniker': 'Industriemechanikerin',
+  'Elektroniker': 'Elektronikerin',
+  'Fachinformatiker': 'Fachinformatikerin',
+  'Maler und Lackierer': 'Malerin und Lackiererin',
+  'Tischler': 'Tischlerin',
+  'Friseur': 'Friseurin',
+  'Maurer': 'Maurerin',
+  'Anlagenmechaniker': 'Anlagenmechanikerin',
+  'KFZ-Mechatroniker': 'KFZ-Mechatronikerin',
+};
+
+function generateEmail(co) {
+  const p = getActiveProfile();
+  const baseJob = p ? p.job : 'KFZ-Mechatroniker';
+  const isFemale = globalConfig.gender === 'female';
+  const job = isFemale ? (FEMALE_JOBS[baseJob] || baseJob + 'in') : baseJob;
+  // التعامل مع غياب الاسم أو المدير
+  const emailDomain2 = co.email ? co.email.split('@')[1] || '' : '';
+  const commonProviders2 = ['gmail.com','yahoo.com','hotmail.com','outlook.com','gmx.de','web.de','freenet.de','t-online.de'];
+  const companyName = co.name || (commonProviders2.includes(emailDomain2) ? '' : emailDomain2) || 'Ihrem Unternehmen';
+  let greeting;
+  if (co.ceo) {
+    const isFrau = co.ceo.toLowerCase().includes('frau');
+    greeting = 'Sehr geehrte' + (isFrau ? '' : 'r') + ' ' + co.ceo + ',';
+  } else {
+    greeting = 'Sehr geehrte Damen und Herren,';
+  }
+
+  const subject = 'Bewerbung um einen Ausbildungsplatz als ' + job + ' – ' + globalConfig.name;
+  const sign = '\n\nMit freundlichen Grüßen,\n' + globalConfig.name + (globalConfig.phone ? '\nTel: ' + globalConfig.phone : '');
+
+  // الجملة المخصصة
+  const customNote = co.note ? '\n\n' + co.note : '';
+
+  // التناوب بين القالبين
+  const sentCount = p ? p.companies.filter(c => c.status !== 'pending').length : 0;
+  const useTemplate1 = sentCount % 2 === 0;
+
+  let body;
+  if (useTemplate1) {
+    body = 'Betreff: ' + subject + '\n\n' + greeting + '\n\nals ich Ihre Stellenausschreibung bei ' + companyName + ' gelesen habe, war mir sofort klar: Das ist genau die Herausforderung, nach der ich suche.' + customNote + ' Ich bin hoch motiviert, mich bei Ihnen als ' + job + ' zu bewerben. Meine Deutschkenntnisse auf dem Niveau B2 ermöglichen mir eine reibungslose Kommunikation im Berufsalltag.\n\nMeine Bewerbungsunterlagen geben Ihnen bereits einen Einblick in meine Fähigkeiten und Erfahrungen. Doch ich bin überzeugt, dass ich persönlich noch mehr bieten kann. In einem Gespräch würde ich Ihnen gerne zeigen, wie meine Kompetenzen und meine Leidenschaft perfekt zu Ihrem Team passen.\n\nVielen Dank für Ihre Zeit und die Prüfung meiner Bewerbung. Ich freue mich auf die Möglichkeit, Sie persönlich zu überzeugen.' + sign;
+  } else {
+    body = 'Betreff: ' + subject + '\n\n' + greeting + '\n\nich bin hoch motiviert, mich bei ' + companyName + ' als ' + job + ' zu bewerben.' + customNote + ' Meine Deutschkenntnisse auf dem Niveau B2 ermöglichen mir eine gute Kommunikation im Berufsalltag.\n\nIn meinen Bewerbungsunterlagen, dem Anschreiben und Lebenslauf, können Sie bereits einen Einblick in meine Fähigkeiten und Erfahrungen gewinnen. Doch ich bin fest davon überzeugt, dass ich persönlich noch mehr zu bieten habe. Ich freue mich darauf, Ihnen in einem Gespräch zu zeigen, wie meine Qualifikationen und meine Leidenschaft für die Position mich zu einem wertvollen Mitglied Ihres Teams machen können.\n\nVielen Dank für Ihre Zeit und die Berücksichtigung meiner Bewerbung.' + sign;
+  }
+  return body;
+}
+
+async function sendViaProxy(to, subject, body) {
+  const p = getActiveProfile();
+  if (!globalConfig.proxy) throw new Error('يجب إدخال رابط Apps Script Proxy');
+  const payload = JSON.stringify({ 
+    to, subject, body, 
+    fromEmail: globalConfig.gmail, 
+    fromName: globalConfig.name, 
+    appPassword: globalConfig.pass, 
+    cvBase64: p ? p.cvBase64 : null, 
+    cvName: p ? p.cvName : 'Lebenslauf.pdf' 
+  });
+  
+  await fetch(globalConfig.proxy, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: payload
+  });
+  return true;
+}
+
+// ══════════════════════════════════════════
+// PREVIEW MODAL
+// ══════════════════════════════════════════
+let countdownTimer = null;
+
+function showPreviewModal(co, subject, body, i, total) {
+  return new Promise(resolve => {
+    resolvePreview = resolve; editMode = false; curSubject = subject; curBody = body;
+    document.getElementById('modal-to').textContent = 'إلى: ' + co.name + ' — ' + co.email;
+    document.getElementById('modal-counter').textContent = i + ' / ' + total;
+    document.getElementById('modal-body').innerHTML = '<div class="email-subject">📋 ' + subject + '</div><div class="email-body">' + body + '</div>';
+    document.getElementById('edit-btn').textContent = '✏️ تعديل';
+    document.getElementById('modal').classList.add('show');
+
+    // Auto mode countdown
+    const countdownWrap = document.getElementById('countdown-wrap');
+    const countdownNum = document.getElementById('countdown-num');
+    const modalCounter = document.getElementById('modal-counter');
+
+    if (countdownTimer) clearInterval(countdownTimer);
+
+    if (sendMode === 'auto') {
+      const delay = parseInt(document.getElementById('delay-range')?.value || 5);
+      let remaining = delay;
+      countdownWrap.style.display = 'flex';
+      modalCounter.style.display = 'none';
+      countdownNum.textContent = remaining;
+
+      countdownTimer = setInterval(() => {
+        remaining--;
+        countdownNum.textContent = remaining;
+        if (remaining <= 0) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          decide('send');
+        }
+      }, 1000);
+    } else {
+      countdownWrap.style.display = 'none';
+      modalCounter.style.display = 'block';
+    }
+  });
+}
+
+function toggleEdit() {
+  editMode = !editMode;
+  document.getElementById('edit-btn').textContent = editMode ? '👁️ عرض' : '✏️ تعديل';
+  if (editMode) {
+    document.getElementById('modal-body').innerHTML = '<input class="subject-edit" id="e-subj" value="' + curSubject.replace(/"/g,'&quot;') + '"><textarea class="email-edit" id="e-body">' + curBody + '</textarea>';
+  } else {
+    curSubject = document.getElementById('e-subj')?.value || curSubject;
+    curBody = document.getElementById('e-body')?.value || curBody;
+    document.getElementById('modal-body').innerHTML = '<div class="email-subject">📋 ' + curSubject + '</div><div class="email-body">' + curBody + '</div>';
+  }
+}
+
+function decide(action) {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  if (editMode) { curSubject = document.getElementById('e-subj')?.value || curSubject; curBody = document.getElementById('e-body')?.value || curBody; }
+  document.getElementById('modal').classList.remove('show');
+  if (resolvePreview) { resolvePreview({ action, subject: curSubject, body: curBody }); resolvePreview = null; }
+}
+
+// ══════════════════════════════════════════
+// SENDING
+// ══════════════════════════════════════════
+async function startSending() {
+  if (!globalConfig.gmail) { toast('أدخل إعداداتك أولاً', 'error'); openSettings(); return; }
+  const companies = getCompanies();
+  const pending = companies.filter(c => c.status === 'pending');
+  if (!pending.length) { toast('لا توجد شركات معلقة', 'error'); return; }
+  const limits = { 1: 20, 2: 50, 3: 100 };
+  const limit = limits[getWeek()] || 100;
+  const remaining = Math.max(0, limit - getTodaySent());
+  if (remaining <= 0) { toast('وصلت للحد اليومي! حاول غداً', 'error'); return; }
+
+  const toSend = pending.slice(0, remaining);
+  sending = true; cancelFlag = false;
+  document.getElementById('send-btn').style.display = 'none';
+  document.getElementById('stop-btn').style.display = 'block';
+  document.getElementById('progress-wrap').style.display = 'block';
+  showTab('tracker', document.querySelectorAll('.tab')[1]);
+  addLog('🚀 بدء الإرسال — ' + toSend.length + ' شركة', 'info');
+
+  for (let i = 0; i < toSend.length; i++) {
+    if (cancelFlag) { addLog('⛔ تم الإيقاف', 'warn'); break; }
+    const co = toSend[i];
+    document.getElementById('progress-fill').style.width = Math.round((i/toSend.length)*100) + '%';
+    document.getElementById('progress-pct').textContent = Math.round((i/toSend.length)*100) + '%';
+    co.status = 'sending'; setCompanies(companies); renderAll();
+
+    const emailText = generateEmail(co);
+    const lines = emailText.split('\n');
+    const subLine = lines.find(l => l.startsWith('Betreff:')) || '';
+    const subject = subLine.replace('Betreff:', '').trim() || ('Bewerbung Ausbildung ' + (getActiveProfile()?.job || 'KFZ-Mechatroniker') + ' – ' + globalConfig.name);
+    const body = lines.filter(l => !l.startsWith('Betreff:')).join('\n').trim();
+    
+    // تأكد أن الإيميل يذهب للشركة الصحيحة
+    console.log('Sending to:', co.email, '| Subject:', subject);
+
+    const dec = await showPreviewModal(co, subject, body, i+1, toSend.length);
+    if (dec.action === 'stop') { co.status = 'pending'; cancelFlag = true; setCompanies(companies); renderAll(); addLog('⛔ إيقاف', 'warn'); break; }
+    if (dec.action === 'skip') { co.status = 'pending'; setCompanies(companies); renderAll(); addLog('⏭️ تخطي ' + co.name, 'warn'); continue; }
+
+    addLog('📨 إرسال إلى ' + co.name + '...', 'info');
+    try {
+      await sendViaProxy(co.email, dec.subject, dec.body);
+      co.status = 'sent'; co.sentAt = new Date().toISOString();
+      incSent();
+      addLog('✅ نجح → ' + co.name, 'ok');
+    } catch(err) {
+      co.status = 'pending';
+      addLog('❌ فشل → ' + co.name + ': ' + err.message, 'err');
+    }
+    setCompanies(companies); renderAll(); updateStats();
+
+    if (i < toSend.length - 1 && !cancelFlag) {
+      const sec = 60 + Math.random() * 120;
+      addLog('⏳ انتظار ' + Math.round(sec) + ' ثانية...', 'info');
+      await new Promise(r => setTimeout(r, sec * 1000));
+    }
+  }
+
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('send-btn').style.display = 'block';
+  document.getElementById('stop-btn').style.display = 'none';
+  sending = false;
+  addLog('🎉 انتهى الإرسال!', 'ok');
+  toast('✅ انتهى الإرسال!', 'success');
+}
+
+function stopSending() {
+  cancelFlag = true;
+  document.getElementById('send-btn').style.display = 'block';
+  document.getElementById('stop-btn').style.display = 'none';
+  sending = false;
+}
+
+// ══════════════════════════════════════════
+// REMINDERS
+// ══════════════════════════════════════════
+async function sendReminders() {
+  const companies = getCompanies();
+  const toRemind = companies.filter(c => needsReminder(c) && !c.reminderSent);
+  if (!toRemind.length) { toast('لا يوجد من يحتاج تذكير', 'info'); return; }
+  showTab('tracker', document.querySelectorAll('.tab')[1]);
+  addLog('🔔 إرسال ' + toRemind.length + ' تذكير...', 'info');
+  const p = getActiveProfile();
+  const job = p ? p.job : 'KFZ-Mechatroniker';
+  for (const co of toRemind) {
+    try {
+      const cName = co.name || co.email.split('@')[1] || 'Ihrem Unternehmen';
+      const rGreeting = co.ceo ? 'Sehr geehrte' + (co.ceo.toLowerCase().includes('frau') ? '' : 'r') + ' ' + co.ceo + ',' : 'Sehr geehrte Damen und Herren,';
+      const body = rGreeting + '\n\nvor ' + daysSince(co.sentAt) + ' Tagen habe ich mich bei ' + cName + ' um eine Ausbildungsstelle als ' + job + ' beworben und noch keine Rückmeldung erhalten.\n\nIch bin weiterhin sehr interessiert und möchte freundlich nachfragen.\n\nMit freundlichen Grüßen,\n' + globalConfig.name + (globalConfig.phone ? '\nTel: ' + globalConfig.phone : '') + '\nE-Mail: ' + globalConfig.gmail;
+      await sendViaProxy(co.email, 'Nachfrage: Bewerbung ' + job + ' – ' + globalConfig.name, body);
+      co.reminderSent = true;
+      addLog('🔔 تذكير أُرسل → ' + co.name, 'ok');
+      await new Promise(r => setTimeout(r, 30000 + Math.random() * 30000));
+    } catch(err) {
+      addLog('❌ فشل تذكير → ' + co.name + ': ' + err.message, 'err');
+    }
+  }
+  setCompanies(companies); renderAll(); updateStats();
+  toast('✅ تم إرسال التذكيرات', 'success');
+}
+
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+async function logoutUser() {
+  if (window._supabase) await window._supabase.auth.signOut();
+  window.location.href = 'jobmailer-auth.html';
+}
+
+// Show plan badge
+setTimeout(() => {
+  const badge = document.getElementById('plan-badge');
+  if (badge && window._userPlan) {
+    badge.textContent = window._userPlan;
+    if (window._userPlan === 'pro') { badge.style.background='rgba(41,121,255,.15)'; badge.style.borderColor='rgba(41,121,255,.3)'; badge.style.color='#2979ff'; }
+    if (window._userPlan === 'unlimited') { badge.style.background='rgba(0,200,83,.15)'; badge.style.borderColor='rgba(0,200,83,.3)'; badge.style.color='#00c853'; }
+  }
+}, 2000);
+
+let toastTimer;
+function toast(msg, type = 'info') {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast ' + type; el.style.display = 'block';
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+</script>
+</body>
+</html>
