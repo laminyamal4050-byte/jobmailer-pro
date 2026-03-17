@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobMailer — لوحة Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#00c853;--blue:#2979ff;--dark:#0d1117;--dark2:#161b22;--dark3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--red:#f85149;--yellow:#f0c040}
+body{background:var(--dark);color:var(--text);font-family:'Cairo',sans-serif;min-height:100vh}
+
+/* NAV */
+nav{background:var(--dark2);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'Outfit',sans-serif;font-size:20px;font-weight:900}
+.logo span:first-child{color:var(--green)}
+.logo span:last-child{color:var(--blue)}
+.admin-badge{background:rgba(248,81,73,.15);border:1px solid rgba(248,81,73,.3);color:var(--red);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;margin-right:8px}
+.btn-logout{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'Cairo',sans-serif;transition:all .2s}
+.btn-logout:hover{border-color:var(--red);color:var(--red)}
+
+/* LAYOUT */
+.container{max-width:1200px;margin:0 auto;padding:24px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat{background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:20px}
+.stat-num{font-size:36px;font-weight:900;line-height:1}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px}
+
+/* CARD */
+.card{background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{background:var(--dark3);color:var(--muted);padding:10px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:1px}
+.tbl td{padding:12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr:last-child td{border:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+/* STATUS BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700}
+.badge-pending{background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.3);color:var(--yellow)}
+.badge-active{background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.3);color:var(--green)}
+.badge-suspended{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:var(--red)}
+.badge-free{background:rgba(139,148,158,.1);border:1px solid var(--border);color:var(--muted)}
+.badge-pro{background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);color:var(--blue)}
+.badge-unlimited{background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.3);color:var(--green)}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:'Cairo',sans-serif;transition:all .2s}
+.btn-activate{background:rgba(0,200,83,.15);color:var(--green);border:1px solid rgba(0,200,83,.3)}
+.btn-activate:hover{background:var(--green);color:#000}
+.btn-suspend{background:rgba(248,81,73,.1);color:var(--red);border:1px solid rgba(248,81,73,.3)}
+.btn-suspend:hover{background:var(--red);color:#fff}
+.btn-primary{background:var(--green);color:#000}
+.btn-primary:hover{background:#00e060}
+
+/* PLAN SELECT */
+.plan-select{background:var(--dark);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px;font-family:'Cairo',sans-serif;cursor:pointer}
+
+/* LOADING */
+.loading{text-align:center;padding:40px;color:var(--muted)}
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* SEARCH */
+.search-input{background:var(--dark);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;font-size:13px;font-family:'Cairo',sans-serif;outline:none;width:260px;transition:border-color .2s}
+.search-input:focus{border-color:var(--green)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark2);color:var(--text);padding:12px 20px;border-radius:8px;font-size:13px;font-weight:700;z-index:1000;display:none;border:1px solid var(--border)}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo"><span>Job</span><span>Mailer</span></div>
+    <span class="admin-badge">ADMIN</span>
+  </div>
+  <button class="btn-logout" onclick="logout()">تسجيل الخروج</button>
+</nav>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="stats" id="stats">
+    <div class="stat"><div class="stat-num" id="total-users">—</div><div class="stat-lbl">إجمالي المستخدمين</div></div>
+    <div class="stat"><div class="stat-num" id="active-users" style="color:var(--green)">—</div><div class="stat-lbl">نشط</div></div>
+    <div class="stat"><div class="stat-num" id="pending-users" style="color:var(--yellow)">—</div><div class="stat-lbl">في الانتظار</div></div>
+    <div class="stat"><div class="stat-num" id="pro-users" style="color:var(--blue)">—</div><div class="stat-lbl">مشتركون Pro+</div></div>
+  </div>
+
+  <!-- PENDING USERS -->
+  <div class="card">
+    <div class="card-title">
+      <span>⏳ ينتظرون التفعيل</span>
+      <span id="pending-count" style="background:rgba(248,81,73,.15);border:1px solid rgba(248,81,73,.3);color:var(--red);padding:3px 10px;border-radius:100px;font-size:12px">0</span>
+    </div>
+    <div id="pending-table"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
+  </div>
+
+  <!-- ALL USERS -->
+  <div class="card">
+    <div class="card-title">
+      <span>👥 كل المستخدمين</span>
+      <input class="search-input" id="search" placeholder="🔍 ابحث بالاسم أو الإيميل..." oninput="filterUsers()">
+    </div>
+    <div id="users-table"><div class="loading"><div class="spinner"></div>جاري التحميل...</div></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://rktxrcvgdhqtkooawmmk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_HeHtbOGSyjEyRyrbMo1YmA_KAIg0qR_';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allUsers = [];
+
+// ── INIT ──
+window.onload = async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'jobmailer-auth.html'; return; }
+
+  const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
+  if (!profile || profile.role !== 'admin') { window.location.href = 'jobmailer-auth.html'; return; }
+
+  loadUsers();
+};
+
+async function loadUsers() {
+  const { data, error } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
+  if (error) { toast('خطأ في تحميل البيانات', 'error'); return; }
+
+  allUsers = data || [];
+  updateStats();
+  renderPending();
+  renderUsers(allUsers);
+}
+
+function updateStats() {
+  document.getElementById('total-users').textContent = allUsers.length;
+  document.getElementById('active-users').textContent = allUsers.filter(u => u.status === 'active').length;
+  document.getElementById('pending-users').textContent = allUsers.filter(u => u.status === 'pending').length;
+  document.getElementById('pro-users').textContent = allUsers.filter(u => ['pro','unlimited'].includes(u.plan)).length;
+  document.getElementById('pending-count').textContent = allUsers.filter(u => u.status === 'pending').length;
+}
+
+function renderPending() {
+  const pending = allUsers.filter(u => u.status === 'pending');
+  const wrap = document.getElementById('pending-table');
+  if (!pending.length) { wrap.innerHTML = '<div class="empty">✅ لا يوجد طلبات انتظار</div>'; return; }
+  wrap.innerHTML = buildTable(pending, true);
+}
+
+function renderUsers(users) {
+  const wrap = document.getElementById('users-table');
+  if (!users.length) { wrap.innerHTML = '<div class="empty">لا يوجد مستخدمون</div>'; return; }
+  wrap.innerHTML = buildTable(users, false);
+}
+
+function buildTable(users, isPending) {
+  return `<div style="overflow-x:auto"><table class="tbl">
+    <thead><tr>
+      <th>الاسم</th><th>الإيميل</th><th>الحالة</th><th>الخطة</th><th>تاريخ التسجيل</th><th>إجراءات</th>
+    </tr></thead>
+    <tbody>${users.map(u => `<tr>
+      <td><strong>${u.full_name || '—'}</strong></td>
+      <td style="color:var(--muted);font-size:12px">${u.email}</td>
+      <td><span class="badge badge-${u.status}">${u.status === 'pending' ? '⏳ انتظار' : u.status === 'active' ? '✅ نشط' : '🚫 موقوف'}</span></td>
+      <td>
+        <select class="plan-select" onchange="updatePlan('${u.id}', this.value)">
+          <option value="free" ${u.plan==='free'?'selected':''}>مجاني</option>
+          <option value="pro" ${u.plan==='pro'?'selected':''}>Pro 9€</option>
+          <option value="unlimited" ${u.plan==='unlimited'?'selected':''}>Unlimited 19€</option>
+        </select>
+      </td>
+      <td style="color:var(--muted);font-size:12px">${new Date(u.created_at).toLocaleDateString('ar')}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        ${u.status !== 'active' ? `<button class="btn btn-activate" onclick="activateUser('${u.id}')">✅ تفعيل</button>` : ''}
+        ${u.status === 'active' ? `<button class="btn btn-suspend" onclick="suspendUser('${u.id}')">🚫 إيقاف</button>` : ''}
+      </td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+async function activateUser(id) {
+  const { data, error } = await sb.from('profiles').update({ status: 'active' }).eq('id', id).select();
+  if (error) { 
+    console.error('Activate error:', error);
+    toast('فشل: ' + error.message, 'error'); 
+    return; 
+  }
+  if (!data || data.length === 0) {
+    toast('❌ المستخدم غير موجود في profiles', 'error');
+    return;
+  }
+  toast('✅ تم تفعيل الحساب!', 'success');
+  loadUsers();
+}
+
+async function suspendUser(id) {
+  if (!confirm('هل تريد إيقاف هذا الحساب؟')) return;
+  const { error } = await sb.from('profiles').update({ status: 'suspended' }).eq('id', id);
+  if (error) { toast('فشل الإيقاف', 'error'); return; }
+  toast('🚫 تم إيقاف الحساب', 'success');
+  loadUsers();
+}
+
+async function updatePlan(id, plan) {
+  const { error } = await sb.from('profiles').update({ plan }).eq('id', id);
+  if (error) { toast('فشل تحديث الخطة', 'error'); return; }
+  toast('✅ تم تحديث الخطة', 'success');
+  const user = allUsers.find(u => u.id === id);
+  if (user) user.plan = plan;
+  updateStats();
+}
+
+function filterUsers() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = allUsers.filter(u =>
+    (u.full_name||'').toLowerCase().includes(q) ||
+    (u.email||'').toLowerCase().includes(q)
+  );
+  renderUsers(filtered);
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  window.location.href = 'jobmailer-auth.html';
+}
+
+let toastTimer;
+function toast(msg, type='info') {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast ' + type; el.style.display = 'block';
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+</script>
+</body>
+</html>
