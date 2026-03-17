@@ -167,7 +167,7 @@ async function login() {
   if (profile.role === 'admin') {
     window.location.href = 'admin.html';
   } else {
-    window.location.href = 'jobmailer-app.html';
+    window.location.href = 'jobmailer-app-28.html';
   }
 }
 
@@ -205,7 +205,7 @@ sb.auth.getSession().then(async ({ data }) => {
   if (data.session) {
     const { data: profile } = await sb.from('profiles').select('status, role').eq('id', data.session.user.id).single();
     if (profile && profile.status === 'active') {
-      window.location.href = profile.role === 'admin' ? 'admin.html' : 'jobmailer-app.html';
+      window.location.href = profile.role === 'admin' ? 'admin.html' : 'jobmailer-app-28.html';
     }
   }
 });
