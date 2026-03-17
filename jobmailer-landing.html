@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobMailer — أرسل طلباتك إلى ألمانيا تلقائياً</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #00c853;
+  --blue: #2979ff;
+  --dark: #0d1117;
+  --dark2: #161b22;
+  --dark3: #21262d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --border: #30363d;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'Cairo', sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── ANIMATED BG ── */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0,200,83,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,83,.04) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+.bg-glow {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,200,83,.12), transparent),
+              radial-gradient(ellipse 60% 40% at 80% 80%, rgba(41,121,255,.08), transparent);
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 16px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(13,17,23,.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px; font-weight: 900;
+  display: flex; align-items: center; gap: 8px;
+}
+.logo span:first-child { color: var(--green); }
+.logo span:last-child { color: var(--blue); }
+.logo-wb { 
+  font-size: 12px; color: var(--muted); 
+  border: 1px solid var(--border); 
+  padding: 2px 8px; border-radius: 4px;
+  margin-right: 8px;
+}
+.nav-cta {
+  background: var(--green); color: #000;
+  padding: 9px 22px; border-radius: 8px;
+  font-weight: 700; font-size: 14px;
+  text-decoration: none; cursor: pointer; border: none;
+  transition: all .2s;
+}
+.nav-cta:hover { background: #00e060; transform: translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  position: relative; z-index: 10;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 100px 20px 60px;
+}
+
+.badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(0,200,83,.1); border: 1px solid rgba(0,200,83,.3);
+  color: var(--green); padding: 6px 16px; border-radius: 100px;
+  font-size: 13px; font-weight: 600; margin-bottom: 28px;
+  animation: fadeDown .6s ease;
+}
+.badge-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+
+.hero h1 {
+  font-size: clamp(38px, 7vw, 80px);
+  font-weight: 900; line-height: 1.1;
+  margin-bottom: 24px;
+  animation: fadeUp .7s ease .1s both;
+}
+.hero h1 .highlight-green { color: var(--green); }
+.hero h1 .highlight-blue { color: var(--blue); }
+
+.hero p {
+  font-size: clamp(16px, 2.5vw, 20px);
+  color: var(--muted); max-width: 600px;
+  line-height: 1.8; margin-bottom: 40px;
+  animation: fadeUp .7s ease .2s both;
+}
+
+.hero-btns {
+  display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  animation: fadeUp .7s ease .3s both;
+}
+.btn-primary {
+  background: var(--green); color: #000;
+  padding: 14px 32px; border-radius: 10px;
+  font-weight: 700; font-size: 16px;
+  text-decoration: none; border: none; cursor: pointer;
+  transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { background: #00e060; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,200,83,.3); }
+.btn-secondary {
+  background: transparent; color: var(--text);
+  padding: 14px 32px; border-radius: 10px;
+  font-weight: 600; font-size: 16px;
+  text-decoration: none; border: 2px solid var(--border); cursor: pointer;
+  transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-secondary:hover { border-color: var(--green); color: var(--green); }
+
+.hero-stats {
+  display: flex; gap: 40px; margin-top: 60px; flex-wrap: wrap; justify-content: center;
+  animation: fadeUp .7s ease .4s both;
+}
+.hero-stat { text-align: center; }
+.hero-stat-num { font-size: 32px; font-weight: 900; color: var(--green); }
+.hero-stat-lbl { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* ── DEMO CARD ── */
+.demo-section {
+  position: relative; z-index: 10;
+  padding: 40px 20px 80px;
+  display: flex; justify-content: center;
+}
+.demo-card {
+  background: var(--dark2); border: 1px solid var(--border);
+  border-radius: 16px; max-width: 700px; width: 100%;
+  overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  animation: fadeUp .8s ease .5s both;
+}
+.demo-header {
+  background: var(--dark3); padding: 12px 18px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.demo-dot { width: 12px; height: 12px; border-radius: 50%; }
+.demo-body { padding: 24px; font-size: 13px; line-height: 2; color: #8b949e; font-family: 'Courier New', monospace; }
+.demo-body .green { color: var(--green); }
+.demo-body .blue { color: var(--blue); }
+.demo-body .white { color: var(--text); }
+.demo-body .yellow { color: #f0c040; }
+.cursor { display: inline-block; width: 2px; height: 14px; background: var(--green); animation: blink 1s infinite; vertical-align: middle; margin-right: 2px; }
+
+/* ── FEATURES ── */
+.section {
+  position: relative; z-index: 10;
+  padding: 80px 20px; max-width: 1100px; margin: 0 auto;
+}
+.section-badge {
+  display: inline-block; background: rgba(41,121,255,.1);
+  border: 1px solid rgba(41,121,255,.3); color: var(--blue);
+  padding: 4px 14px; border-radius: 100px; font-size: 12px; font-weight: 700;
+  margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px;
+}
+.section h2 {
+  font-size: clamp(28px, 5vw, 48px); font-weight: 900;
+  margin-bottom: 14px; line-height: 1.2;
+}
+.section p { color: var(--muted); font-size: 17px; line-height: 1.8; max-width: 600px; }
+
+.features-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px; margin-top: 50px;
+}
+.feature-card {
+  background: var(--dark2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px;
+  transition: all .3s; cursor: default;
+}
+.feature-card:hover {
+  border-color: var(--green); transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0,200,83,.1);
+}
+.feature-icon {
+  width: 48px; height: 48px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 16px;
+}
+.feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.feature-card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+/* ── HOW IT WORKS ── */
+.how-section {
+  position: relative; z-index: 10;
+  padding: 80px 20px; background: var(--dark2);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.how-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+.steps {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 30px; margin-top: 50px;
+}
+.step { text-align: center; }
+.step-num {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), var(--blue));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; margin: 0 auto 16px;
+  color: #000;
+}
+.step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.step p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+.step-arrow {
+  display: none;
+}
+@media (min-width: 600px) {
+  .step-arrow { display: block; font-size: 24px; color: var(--border); margin-top: 12px; }
+}
+
+/* ── PRICING ── */
+.pricing-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px; margin-top: 50px;
+}
+.price-card {
+  background: var(--dark2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px; position: relative;
+  transition: all .3s;
+}
+.price-card:hover { transform: translateY(-4px); }
+.price-card.popular {
+  border-color: var(--green);
+  box-shadow: 0 0 30px rgba(0,200,83,.15);
+}
+.popular-badge {
+  position: absolute; top: -12px; right: 50%; transform: translateX(50%);
+  background: var(--green); color: #000;
+  padding: 3px 14px; border-radius: 100px; font-size: 12px; font-weight: 700;
+}
+.price-name { font-size: 15px; font-weight: 700; color: var(--muted); margin-bottom: 12px; }
+.price-amount { font-size: 44px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+.price-amount span { font-size: 18px; font-weight: 400; color: var(--muted); }
+.price-period { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+.price-features { list-style: none; margin-bottom: 28px; }
+.price-features li {
+  padding: 7px 0; font-size: 14px; color: var(--muted);
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.price-features li:last-child { border: none; }
+.price-features li .check { color: var(--green); font-size: 16px; flex-shrink: 0; }
+.price-features li .cross { color: #444; font-size: 16px; flex-shrink: 0; }
+.btn-price {
+  width: 100%; padding: 12px; border-radius: 8px;
+  font-weight: 700; font-size: 15px; cursor: pointer;
+  border: none; transition: all .2s; font-family: 'Cairo', sans-serif;
+}
+.btn-price-primary { background: var(--green); color: #000; }
+.btn-price-primary:hover { background: #00e060; }
+.btn-price-outline { background: transparent; color: var(--text); border: 2px solid var(--border); }
+.btn-price-outline:hover { border-color: var(--green); color: var(--green); }
+
+/* ── FAQ ── */
+.faq-list { margin-top: 40px; }
+.faq-item {
+  background: var(--dark2); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 10px; overflow: hidden;
+}
+.faq-q {
+  padding: 18px 20px; font-size: 15px; font-weight: 600;
+  cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+  transition: color .2s;
+}
+.faq-q:hover { color: var(--green); }
+.faq-a {
+  padding: 0 20px; max-height: 0; overflow: hidden;
+  font-size: 14px; color: var(--muted); line-height: 1.8;
+  transition: all .3s;
+}
+.faq-a.open { padding: 0 20px 18px; max-height: 200px; }
+
+/* ── CTA SECTION ── */
+.cta-section {
+  position: relative; z-index: 10;
+  padding: 100px 20px; text-align: center;
+  background: linear-gradient(180deg, transparent, rgba(0,200,83,.05), transparent);
+}
+.cta-section h2 { font-size: clamp(28px, 5vw, 50px); font-weight: 900; margin-bottom: 16px; }
+.cta-section p { color: var(--muted); font-size: 17px; margin-bottom: 36px; }
+
+/* ── FOOTER ── */
+footer {
+  position: relative; z-index: 10;
+  background: var(--dark2); border-top: 1px solid var(--border);
+  padding: 30px 40px;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 14px;
+}
+.footer-logo { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 18px; }
+.footer-logo span:first-child { color: var(--green); }
+.footer-logo span:last-child { color: var(--blue); }
+footer p { font-size: 13px; color: var(--muted); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color .2s; }
+.footer-links a:hover { color: var(--green); }
+
+/* ── WHATSAPP BTN ── */
+.wa-btn {
+  position: fixed; bottom: 24px; left: 24px; z-index: 200;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: #25d366; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(37,211,102,.4);
+  text-decoration: none; transition: all .3s;
+  animation: pulse-wa 2s infinite;
+}
+.wa-btn:hover { transform: scale(1.1); }
+@keyframes pulse-wa {
+  0%,100%{box-shadow:0 4px 20px rgba(37,211,102,.4)}
+  50%{box-shadow:0 4px 40px rgba(37,211,102,.7)}
+}
+.wa-btn svg { width: 28px; height: 28px; fill: #fff; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate { opacity: 0; transform: translateY(30px); transition: all .6s ease; }
+.animate.visible { opacity: 1; transform: translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  nav { padding: 12px 20px; }
+  .hero { padding: 80px 16px 40px; }
+  footer { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <span>Job</span><span>Mailer</span>
+    <span class="logo-wb">by WB2</span>
+  </div>
+  <a href="https://laminyamal4050-byte.github.io/jobmailer-pro/jobmailer-auth.html" class="nav-cta">ابدأ الآن ←</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">
+    <span class="badge-dot"></span>
+    🇩🇪 أرسل طلباتك إلى ألمانيا بضغطة واحدة
+  </div>
+
+  <h1>
+    أرسل <span class="highlight-green">100 طلب</span><br>
+    Ausbildung في<br>
+    <span class="highlight-blue">دقائق</span> لا أسابيع
+  </h1>
+
+  <p>
+    أداة ذكية تكتب إيميلاً مخصصاً لكل شركة ألمانية،
+    ترفق CV تلقائياً، وترسل في الوقت المثالي —
+    كل هذا بدون أي خبرة تقنية.
+  </p>
+
+  <div class="hero-btns">
+    <a href="https://laminyamal4050-byte.github.io/jobmailer-pro/jobmailer-auth.html" class="btn-primary">🚀 ابدأ مجاناً</a>
+    <a href="#features" class="btn-secondary">📖 كيف يعمل؟</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num">100+</div>
+      <div class="hero-stat-lbl">إيميل في يوم واحد</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">6</div>
+      <div class="hero-stat-lbl">مجالات في نفس الوقت</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">0€</div>
+      <div class="hero-stat-lbl">للبداية</div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<div class="demo-section">
+  <div class="demo-card">
+    <div class="demo-header">
+      <div class="demo-dot" style="background:#ff5f57"></div>
+      <div class="demo-dot" style="background:#febc2e"></div>
+      <div class="demo-dot" style="background:#28c840"></div>
+      <span style="font-size:12px;color:#8b949e;margin-right:auto">JobMailer.de — إرسال تلقائي</span>
+    </div>
+    <div class="demo-body">
+      <div><span class="green">✅ مجال 1:</span> <span class="white">KFZ-Mechatroniker</span> — <span class="yellow">23 شركة</span></div>
+      <div><span class="green">✅ مجال 2:</span> <span class="white">Elektroniker</span> — <span class="yellow">15 شركة</span></div>
+      <div><span class="blue">📨 إرسال إلى</span> <span class="white">BMW Berlin</span> <span class="green">← نجح!</span></div>
+      <div><span class="blue">📨 إرسال إلى</span> <span class="white">Mercedes Hamburg</span> <span class="green">← نجح!</span></div>
+      <div><span class="blue">⏳ انتظار</span> <span class="white">87 ثانية (مضاد Spam)...</span></div>
+      <div><span class="blue">📨 إرسال إلى</span> <span class="white">Audi Frankfurt</span> <span class="green">← نجح!</span></div>
+      <div style="margin-top:8px"><span class="green">🎉 اليوم: 20/20 إيميل مرسل</span> <span class="cursor"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section animate" id="features">
+  <div class="section-badge">الميزات</div>
+  <h2>كل ما تحتاجه<br><span style="color:var(--green)">في مكان واحد</span></h2>
+  <p>تطبيق متكامل يتولى كل خطوات التقديم من الكتابة حتى المتابعة</p>
+
+  <div class="features-grid">
+    <div class="feature-card animate">
+      <div class="feature-icon" style="background:rgba(0,200,83,.1)">✍️</div>
+      <h3>إيميلات احترافية بالألمانية</h3>
+      <p>قالبان متناوبان مكتوبان بشكل طبيعي، مخصصان لكل شركة باسمها واسم مديرها.</p>
+    </div>
+    <div class="feature-card animate">
+      <div class="feature-icon" style="background:rgba(41,121,255,.1)">📎</div>
+      <h3>CV مرفق تلقائياً</h3>
+      <p>ارفع ملف PDF مرة واحدة — يُرفق تلقائياً مع كل إيميل ترسله.</p>
+    </div>
+    <div class="feature-card animate">
+      <div class="feature-icon" style="background:rgba(255,200,0,.1)">⚡</div>
+      <h3>إرسال تلقائي بعداد</h3>
+      <p>شاهد كل إيميل قبل إرساله مع عداد تنازلي — يرسل تلقائياً إذا لم تتدخل.</p>
+    </div>
+    <div class="feature-card animate">
+      <div class="feature-icon" style="background:rgba(255,100,100,.1)">🎯</div>
+      <h3>6 مجالات في نفس الوقت</h3>
+      <p>KFZ، Elektroniker، Koch وغيرها — كل مجال له CV وقائمة شركات خاصة.</p>
+    </div>
+    <div class="feature-card animate">
+      <div class="feature-icon" style="background:rgba(0,200,83,.1)">🔔</div>
+      <h3>متابعة 3 مراحل</h3>
+      <p>تذكير تلقائي بعد 15، 30، 45 يوم لمن لم يرد — بأسلوب مختلف في كل مرة.</p>
+    </div>
+    <div class="feature-card animate">
+      <div class="feature-icon" style="background:rgba(41,121,255,.1)">🛡️</div>
+      <h3>مضاد Spam ذكي</h3>
+      <p>تأخير عشوائي بين الإرسالات وWarm-up تدريجي يحمي حسابك من الحجب.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div class="how-section">
+  <div class="how-inner animate">
+    <div class="section-badge">كيف يعمل</div>
+    <h2>3 خطوات فقط</h2>
+    <p style="color:var(--muted);margin:12px auto;max-width:500px">من الإعداد حتى أول رد من شركة ألمانية</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>أضف شركاتك</h3>
+        <p>أدخل الشركات يدوياً أو استورد ملف CSV — اسم الشركة والإيميل يكفيان.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>اضغط إرسال</h3>
+        <p>التطبيق يكتب إيميلاً مخصصاً لكل شركة ويرسله مع CV تلقائياً.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>انتظر الردود</h3>
+        <p>التطبيق يتابع ويرسل تذكيرات تلقائية — أنت فقط تنتظر المقابلة!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<section class="section animate" id="pricing">
+  <div class="section-badge">الأسعار</div>
+  <h2>ابدأ <span style="color:var(--green)">مجاناً</span> اليوم</h2>
+  <p>بدون بطاقة بنكية — ابدأ مجاناً وطوّر عند الحاجة</p>
+
+  <div class="pricing-grid">
+    <!-- FREE -->
+    <div class="price-card animate">
+      <div class="price-name">مجاني</div>
+      <div class="price-amount">0<span>€</span></div>
+      <div class="price-period">للأبد</div>
+      <ul class="price-features">
+        <li><span class="check">✓</span> 20 إيميل/شهر</li>
+        <li><span class="check">✓</span> مجال واحد</li>
+        <li><span class="check">✓</span> CV مرفق</li>
+        <li><span class="cross">✗</span> متابعة تلقائية</li>
+        <li><span class="cross">✗</span> إرسال تلقائي</li>
+      </ul>
+      <button class="btn-price btn-price-outline" onclick="contactWhatsApp('مجاني')">ابدأ مجاناً</button>
+    </div>
+
+    <!-- PRO -->
+    <div class="price-card popular animate">
+      <div class="popular-badge">⭐ الأكثر طلباً</div>
+      <div class="price-name">Pro</div>
+      <div class="price-amount">9<span>€</span></div>
+      <div class="price-period">/شهر</div>
+      <ul class="price-features">
+        <li><span class="check">✓</span> 200 إيميل/شهر</li>
+        <li><span class="check">✓</span> 3 مجالات</li>
+        <li><span class="check">✓</span> CV مرفق</li>
+        <li><span class="check">✓</span> متابعة 3 مراحل</li>
+        <li><span class="check">✓</span> إرسال تلقائي</li>
+      </ul>
+      <button class="btn-price btn-price-primary" onclick="contactWhatsApp('Pro')">احصل على Pro ←</button>
+    </div>
+
+    <!-- UNLIMITED -->
+    <div class="price-card animate">
+      <div class="price-name">غير محدود</div>
+      <div class="price-amount">19<span>€</span></div>
+      <div class="price-period">/شهر</div>
+      <ul class="price-features">
+        <li><span class="check">✓</span> إيميلات غير محدودة</li>
+        <li><span class="check">✓</span> 6 مجالات</li>
+        <li><span class="check">✓</span> CV مرفق</li>
+        <li><span class="check">✓</span> متابعة 3 مراحل</li>
+        <li><span class="check">✓</span> دعم مباشر</li>
+      </ul>
+      <button class="btn-price btn-price-outline" onclick="contactWhatsApp('Unlimited')">احصل عليه ←</button>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section animate">
+  <div class="section-badge">أسئلة شائعة</div>
+  <h2>هل لديك <span style="color:var(--green)">سؤال؟</span></h2>
+
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        هل يعمل التطبيق على الهاتف؟
+        <span>＋</span>
+      </div>
+      <div class="faq-a">نعم! التطبيق يعمل على أي متصفح — هاتف أو حاسوب — بدون تنزيل أي شيء.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        هل الإيميلات تبدو مكتوبة بالذكاء الاصطناعي؟
+        <span>＋</span>
+      </div>
+      <div class="faq-a">لا! استخدمنا قوالب مكتوبة بأسلوب بشري طبيعي — تُخصَّص فقط باسم الشركة والمدير. لا أحد سيشك.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        هل يمكنني إرسال CV بالألمانية وأخرى بالإنجليزية؟
+        <span>＋</span>
+      </div>
+      <div class="faq-a">نعم! كل مجال له CV خاص به — يمكنك رفع ملفات مختلفة لكل مجال.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        هل حسابي Gmail في أمان؟
+        <span>＋</span>
+      </div>
+      <div class="faq-a">نعم! نستخدم App Password الخاص بـ Google — وليس كلمة المرور الأساسية. يمكنك إلغاؤه في أي وقت.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        كيف أحصل على التطبيق بعد الدفع؟
+        <span>＋</span>
+      </div>
+      <div class="faq-a">فور تواصلك عبر WhatsApp وإتمام الدفع، تحصل على رابط التطبيق خلال دقائق.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section animate">
+  <h2>جاهز تبدأ<br><span style="color:var(--green)">رحلتك لألمانيا؟</span></h2>
+  <p>انضم لمئات الشباب الذين يرسلون طلباتهم بذكاء</p>
+  <a href="#pricing" class="btn-primary" style="font-size:18px;padding:16px 40px">🚀 ابدأ الآن مجاناً</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo"><span>Job</span><span>Mailer</span></div>
+  <p>© 2026 JobMailer by WB2 — جميع الحقوق محفوظة</p>
+  <div class="footer-links">
+    <a href="#features">الميزات</a>
+    <a href="#pricing">الأسعار</a>
+    <a href="#" onclick="contactWhatsApp()">تواصل</a>
+  </div>
+</footer>
+
+<!-- WHATSAPP -->
+<a href="https://wa.me/212000000000" class="wa-btn" id="wa-btn" target="_blank" title="تواصل عبر WhatsApp">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+</a>
+
+<script>
+// FAQ
+function toggleFaq(el) {
+  const answer = el.nextElementSibling;
+  const icon = el.querySelector('span');
+  const isOpen = answer.classList.contains('open');
+  document.querySelectorAll('.faq-a').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('.faq-q span').forEach(s => s.textContent = '＋');
+  if (!isOpen) { answer.classList.add('open'); icon.textContent = '－'; }
+}
+
+// Scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.animate').forEach(el => observer.observe(el));
+
+// WhatsApp
+function contactWhatsApp(plan) {
+  const num = '212000000000'; // أضف رقمك هنا // سيتم تحديثه لاحقاً
+  const msg = plan ? `مرحباً، أريد الاشتراك في خطة ${plan} في JobMailer` : 'مرحباً، أريد معرفة المزيد عن JobMailer';
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// Update WA number when provided
+function setWhatsApp(number) {
+  document.getElementById('wa-btn').href = 'https://wa.me/' + number;
+}
+
+// Typing animation in demo
+const lines = [
+  '<span class="green">✅ KFZ-Mechatroniker</span> — <span class="yellow">23 شركة</span>',
+  '<span class="green">✅ Elektroniker</span> — <span class="yellow">15 شركة</span>',
+  '<span class="blue">📨</span> <span class="white">BMW Berlin</span> <span class="green">← نجح!</span>',
+  '<span class="blue">📨</span> <span class="white">Mercedes Hamburg</span> <span class="green">← نجح!</span>',
+  '<span class="blue">⏳</span> <span class="white">انتظار 87 ثانية...</span>',
+  '<span class="blue">📨</span> <span class="white">Audi Frankfurt</span> <span class="green">← نجح!</span>',
+  '<span class="green">🎉 20/20 إيميل مرسل اليوم!</span>',
+];
+</script>
+
+</body>
+</html>
