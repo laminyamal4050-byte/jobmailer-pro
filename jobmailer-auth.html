@@ -186,13 +186,36 @@ async function register() {
   const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
 
   if (error) {
-    showMsg(error.message.includes('already') ? 'هذا الإيميل مسجل مسبقاً — سجّل الدخول' : 'حدث خطأ — حاول مرة أخرى');
+    console.error('Register error:', error);
+    if (error.message.includes('already') || error.message.includes('registered')) {
+      showMsg('هذا الإيميل مسجل مسبقاً — اضغط على تسجيل الدخول');
+    } else {
+      showMsg('حدث خطأ: ' + error.message);
+    }
     btn.disabled = false; btn.innerHTML = 'إنشاء حساب ←';
     return;
   }
 
-  // Create profile with pending status
-  await sb.from('profiles').insert({ id: data.user.id, email, full_name: name, status: 'pending', role: 'user', plan: 'free', created_at: new Date().toISOString() });
+  if (!data.user) {
+    showMsg('حدث خطأ — حاول مرة أخرى');
+    btn.disabled = false; btn.innerHTML = 'إنشاء حساب ←';
+    return;
+  }
+
+  // Try to insert profile (trigger may have already done this)
+  try {
+    await sb.from('profiles').upsert({ 
+      id: data.user.id, 
+      email, 
+      full_name: name, 
+      status: 'pending', 
+      role: 'user', 
+      plan: 'free', 
+      created_at: new Date().toISOString() 
+    });
+  } catch(e) {
+    console.log('Profile already exists via trigger');
+  }
 
   btn.disabled = false; btn.innerHTML = 'إنشاء حساب ←';
   document.getElementById('form-register').style.display = 'none';
