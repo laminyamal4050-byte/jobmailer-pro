@@ -13,10 +13,28 @@ const _sb = supabase.createClient('https://rktxrcvgdhqtkooawmmk.supabase.co', 's
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) { window.location.href = 'jobmailer-auth.html'; return; }
   
-  const { data: profile } = await _sb.from('profiles').select('status, plan, full_name').eq('id', session.user.id).single();
+  // تحقق دائماً من قاعدة البيانات بدون cache
+  const { data: profile, error } = await _sb.from('profiles')
+    .select('status, plan, full_name')
+    .eq('id', session.user.id)
+    .single();
   
-  if (!profile || profile.status !== 'active') {
+  if (error || !profile) {
     await _sb.auth.signOut();
+    window.location.href = 'jobmailer-auth.html';
+    return;
+  }
+
+  if (profile.status === 'pending') {
+    await _sb.auth.signOut();
+    alert('⏳ حسابك قيد المراجعة — تواصل معنا عبر WhatsApp لتفعيل اشتراكك');
+    window.location.href = 'jobmailer-auth.html';
+    return;
+  }
+
+  if (profile.status === 'suspended') {
+    await _sb.auth.signOut();
+    alert('🚫 تم إيقاف حسابك — تواصل مع الدعم');
     window.location.href = 'jobmailer-auth.html';
     return;
   }
